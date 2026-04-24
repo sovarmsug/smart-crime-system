@@ -1,38 +1,31 @@
 const knex = require('knex');
 require('dotenv').config();
 
+// Supabase + Render production-safe configuration
 const db = knex({
   client: 'pg',
-
   connection: {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    port: Number(process.env.DB_PORT || 5432),
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-
-    // ✅ REQUIRED for Supabase
-    ssl: {
-      rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false }
   },
-
   pool: {
     min: 2,
     max: 10
   },
-
   migrations: {
     directory: './migrations',
     tableName: 'knex_migrations'
   },
-
   seeds: {
     directory: './seeds'
   }
 });
 
-// Test DB connection first
+// Test DB connection
 async function testConnection() {
   try {
     await db.raw('SELECT 1');
@@ -50,12 +43,12 @@ async function initializeDatabase() {
 
     await testConnection();
 
-    // PostGIS (optional, safe for Supabase)
+    // Optional PostGIS (safe in Supabase)
     try {
       await db.raw('CREATE EXTENSION IF NOT EXISTS postgis;');
       console.log('✅ PostGIS extension enabled');
     } catch (err) {
-      console.warn('⚠️ PostGIS not available or already enabled:', err.message);
+      console.warn('⚠️ PostGIS skipped:', err.message);
     }
 
     await db.migrate.latest();
