@@ -1,17 +1,10 @@
 const knex = require('knex');
 require('dotenv').config();
 
-// Supabase + Render production-safe configuration
+// ✅ Use DATABASE_URL (Supabase + Render fix)
 const db = knex({
   client: 'pg',
-  connection: {
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT || 5432),
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    ssl: { rejectUnauthorized: false }
-  },
+  connection: process.env.DATABASE_URL,
   pool: {
     min: 2,
     max: 10
@@ -22,6 +15,9 @@ const db = knex({
   },
   seeds: {
     directory: './seeds'
+  },
+  ssl: {
+    rejectUnauthorized: false
   }
 });
 
@@ -31,7 +27,7 @@ async function testConnection() {
     await db.raw('SELECT 1');
     console.log('✅ Database connection OK');
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    console.error('❌ FULL DB ERROR:', error);
     throw error;
   }
 }
@@ -43,7 +39,6 @@ async function initializeDatabase() {
 
     await testConnection();
 
-    // Optional PostGIS (safe in Supabase)
     try {
       await db.raw('CREATE EXTENSION IF NOT EXISTS postgis;');
       console.log('✅ PostGIS extension enabled');
@@ -54,14 +49,9 @@ async function initializeDatabase() {
     await db.migrate.latest();
     console.log('✅ Migrations completed');
 
-    if (process.env.NODE_ENV === 'development') {
-      await db.seed.run();
-      console.log('✅ Seeds completed');
-    }
-
     console.log('🎉 Database initialized successfully');
   } catch (error) {
-    console.error('❌ Database initialization failed:', error.message);
+    console.error('❌ Database initialization failed:', error);
     throw error;
   }
 }
